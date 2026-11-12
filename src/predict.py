@@ -27,24 +27,30 @@ def predict(model, loader, device, tta=False):
                 p = (p + torch.softmax(model(torch.flip(x, dims=[3])).float(), 1)) / 2
         probs.append(p.cpu())
         ids.extend(i.tolist())
-    return ids, torch.cat(probs)
+    return ids, torch.cat(probs) if probs else torch.empty((0, 2))
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ckpt", required=True)
     ap.add_argument("--out", default="submission.csv")
+    ap.add_argument("--data-root", help="Override the dataset location recorded in the checkpoint")
     ap.add_argument("--tta", action="store_true")
     args = ap.parse_args()
 
     device = get_device()
-    ck = torch.load(args.ckpt, map_location=device, weights_only=False)
-    cfg = ck["cfg"]
-    assert ck["classes"][:2] == ["cat", "dog"], ck["classes"]
+    ck = torch.load(args.ckpt, map_location=device, weights_only=True)
+    cfg = dict(ck["cfg"])
+    if args.data_root:
+        cfg["data_root"] = args.data_root
+    if ck["classes"] != ["cat", "dog"] or cfg["num_classes"] != 2:
+        ap.error("This command expects a binary cat/dog checkpoint")
     model = build_model(cfg["model"], cfg["num_classes"], pretrained=False).to(device)
     model.load_state_dict(ck["model"])
 
     ids, probs = predict(model, build_test_loader(cfg), device, args.tta)
+    if sorted(ids) != list(range(1, 501)):
+        ap.error("Expected exactly one image for each test ID 1–500")
     order = sorted(range(len(ids)), key=lambda k: ids[k])
     labels = probs.argmax(1)
 

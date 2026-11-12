@@ -33,6 +33,13 @@ def seed_worker(worker_id: int):
 DEFAULTS = {
     # 数据
     "data_root": "datasets",
+    "dataset": "dogs_cats",
+    "download": False,
+    "val_per_class": 500,
+    "split_seed": 42,
+    "minority_classes": None,
+    "minority_count": 450,
+    "imbalance_method": "none",
     "num_classes": 2,
     "img_size": 224,
     "augment": True,

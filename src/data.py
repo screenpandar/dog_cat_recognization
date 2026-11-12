@@ -1,6 +1,6 @@
 """数据：预处理/增强、Dataset、DataLoader。
 
-接口（同学 C 复用 CIFAR-10 时主要改这里）：
+猫狗数据接口；CIFAR-10 数据加载见 cifar.py：
     build_transforms(img_size, augment) -> (train_tf, eval_tf)
     build_loaders(cfg) -> dict(train=..., val=..., classes=[...], n_train=..., n_val=...)
     build_test_loader(cfg) -> DataLoader，返回 (img, id)
@@ -75,11 +75,11 @@ class TestFolder(Dataset):
         return self.transform(img), int(p.stem)
 
 
-def _loader(ds, cfg, shuffle, gen=None):
+def _loader(ds, cfg, shuffle, gen=None, sampler=None):
     nw = cfg["num_workers"]
     return DataLoader(ds, batch_size=cfg["batch_size"], shuffle=shuffle, num_workers=nw,
                       pin_memory=True, persistent_workers=nw > 0, worker_init_fn=seed_worker,
-                      generator=gen, drop_last=False)
+                      generator=gen, sampler=sampler, drop_last=False)
 
 
 def build_loaders(cfg):

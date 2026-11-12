@@ -33,7 +33,7 @@
 
 **我们要回答的问题**：预训练到底带来多大好处？学习率、数据增强、训练数据量这些因素各有多重要？同一套方法换到 10 分类的 CIFAR-10 上还行吗？
 
-> **English abstract.** We classify dog vs. cat images (20k train / 5k val / 500 test) with a CNN trained from scratch and an ImageNet-pretrained ResNet-18 that is first linear-probed and then fully fine-tuned. The fine-tuned ResNet-18 reaches 99.0% validation accuracy in about 6 minutes, versus 95.2% for the from-scratch CNN after 46 minutes. We study learning rate, augmentation and data size, analyse failure cases, and transfer the pipeline to CIFAR-10, including a class-imbalanced setting.
+> **English abstract.** We classify dog vs. cat images (20k train / 5k val / 500 test) with a CNN trained from scratch and an ImageNet-pretrained ResNet-18 that is first linear-probed and then fully fine-tuned. The fine-tuned ResNet-18 reaches 99.0% validation accuracy in about 6 minutes, versus 95.2% for the from-scratch CNN after 46 minutes. We compare learning rates on Dogs vs. Cats. The transferred training pipeline reaches 93.63% accuracy on the official CIFAR-10 test set. We also compare class weighting and oversampling on a fixed imbalanced split.
 
 ---
 
@@ -63,10 +63,10 @@ flowchart LR
 | **d** | 验证集准确率、test 预测 | 15% | 用户 | 结果表 + `submission.csv` |
 | **e** | test 正确 / 错误样例分析 | 10% | 用户 | 最有把握 / 最没把握 / 预测错的样例图 |
 | **f** | 不同模型与数据处理对准确率的影响 | 10% | 用户 | 模型对比表 + 增强 × 数据量消融 |
-| **g** | 迁移到 CIFAR-10 | 10% | C | 待定 |
-| **h** | CIFAR-10 类别不平衡 | 10% | C | 待定 |
+| **g** | 迁移到 CIFAR-10 | 10% | C | [正式结果](CIFAR10_RESULTS.md) |
+| **h** | CIFAR-10 类别不平衡 | 10% | C | [正式结果](CIFAR10_RESULTS.md) |
 
-各题的详细答案素材见 **[doc.md](doc.md)**。
+各题的详细答案素材见 **[doc.md](doc.md)**，待跑实验的命令见 **[EXPERIMENTS.md](EXPERIMENTS.md)**。
 
 ---
 
@@ -220,9 +220,9 @@ python src/train.py --config configs/resnet18_ft.yaml --set optimizer=sgd lr=1e-
 # f：冻结 vs 微调
 python src/train.py --config configs/resnet18_ft.yaml --set freeze_epochs=-1 exp_name=r18_linear_probe
 # f：增强 × 数据量
-python src/train.py --config configs/resnet18_ft.yaml --set train_per_class=1000 exp_name=r18_2k_aug
-python src/train.py --config configs/resnet18_ft.yaml --set train_per_class=1000 augment=false exp_name=r18_2k_noaug
-python src/train.py --config configs/resnet18_ft.yaml --set augment=false exp_name=r18_20k_noaug
+python src/train.py --config configs/resnet18_ft.yaml --set lr=5e-4 train_per_class=1000 exp_name=r18_2k_aug
+python src/train.py --config configs/resnet18_ft.yaml --set lr=5e-4 train_per_class=1000 augment=false exp_name=r18_2k_noaug
+python src/train.py --config configs/resnet18_ft.yaml --set lr=5e-4 augment=false exp_name=r18_20k_noaug
 # f：从零训练的 CNN
 python src/train.py --set model=simple_cnn pretrained=false freeze_epochs=0 backbone_lr_mult=1 epochs=20 exp_name=simple_cnn
 # b：主模型 3 个 seed
@@ -249,17 +249,13 @@ dog_vs_cat/
     ├── models.py             build_model(name, num_classes) · 冻结 / 分组学习率
     ├── train.py              训练循环（AMP · cosine · 先冻结后微调）· 保存曲线与指标
     ├── predict.py            test 推理 → submission.csv（可选 --tta 翻转增强）
-    └── analyze.py            ⏳ 待写：混淆矩阵图 · 错例网格 · 增强示意图
+    └── analyze.py            混淆矩阵 · 验证错例 · 测试图人工复核
 ```
 
-### 🔟 给同学 C：复用到 CIFAR-10
+### 🔟 CIFAR-10 与不平衡实验
 
-| 要改的地方 | 怎么改 |
-|---|---|
-| 模型 | `build_model("resnet18", num_classes=10)`，分类头统一叫 `fc`，冻结和分组学习率的工具可以直接用 |
-| 数据 | 仿照 `data.build_loaders` 写一个返回同样 dict 的函数（`train` / `val` DataLoader、`classes`、`n_train`、`n_val`、`val_samples`），然后在 `train.py` 里替换 `build_loaders` |
-| 配置 | `num_classes: 10`；`img_size` 用 32（快）或上采样到 224（更好地发挥预训练效果） |
-| 不用改 | 训练循环、优化器、学习率调度、日志、曲线、`metrics.json` |
+共用同一训练入口；四组实验命令、数据划分与指标解释见 [补充实验指南](EXPERIMENTS.md#cifar-10gh)。[查看四组正式结果](CIFAR10_RESULTS.md)。
+
 
 ---
 
@@ -314,7 +310,7 @@ dog_vs_cat/
 
 - **不偷看答案**：只用 train 训练，用 val 选模型和参数；test 只用于最后生成 `submission.csv`
 - **可复现**：固定 python / numpy / torch 随机种子，DataLoader 使用固定的 generator 和 worker seed；每次实验都保存完整的 `config.yaml`
-- **多次运行**：默认开启 cudnn benchmark 加速，会带来微小的非确定性（同一配置两次运行相差约 0.02%），因此主模型用 3 个 seed 报告 mean ± std；需要严格确定性时加 `--set deterministic=true`
+- **多次运行**：默认开启 cudnn benchmark 加速，会带来微小的非确定性（同一配置两次运行相差约 0.02%），可用多个 seed 报告均值与标准差（目前仅记录 seed 42）；需要严格确定性时加 `--set deterministic=true`
 - **同一把尺子**：所有模型使用相同的数据划分、相同的验证集预处理和相同的评估代码
 
 ## 📚 参考文献
