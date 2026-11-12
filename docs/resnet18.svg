@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="215" viewBox="0 0 960 215" role="img" aria-labelledby="title">
+  <title id="title">ResNet-18 architecture for binary cat and dog classification</title>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#475569"/></marker>
+  </defs>
+  <rect width="960" height="215" fill="#fff"/>
+  <text x="30" y="38" fill="#0f172a" font-family="Arial,sans-serif" font-size="23" font-weight="bold">ResNet-18 for cat and dog classification</text>
+  <g fill="#eef5ff" stroke="#80a8df">
+    <rect x="30" y="69" width="125" height="77" rx="9"/>
+    <rect x="185" y="69" width="140" height="77" rx="9"/>
+    <rect x="355" y="69" width="260" height="77" rx="9"/>
+    <rect x="645" y="69" width="100" height="77" rx="9"/>
+  </g>
+  <rect x="775" y="69" width="150" height="77" rx="9" fill="#edf9ef" stroke="#76aa83"/>
+  <g stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)">
+    <path d="M158 107h22"/><path d="M328 107h22"/><path d="M618 107h22"/><path d="M748 107h22"/>
+  </g>
+  <g text-anchor="middle" font-family="Arial,sans-serif" fill="#172554">
+    <text x="92" y="97" font-size="15" font-weight="bold">RGB input</text><text x="92" y="124" font-size="13">3 × 224 × 224</text>
+    <text x="255" y="97" font-size="15" font-weight="bold">Conv + max pool</text><text x="255" y="124" font-size="13">64 × 56 × 56</text>
+    <text x="485" y="92" font-size="15" font-weight="bold">4 residual stages</text>
+    <text x="485" y="113" font-size="13">2 BasicBlocks per stage</text>
+    <text x="485" y="132" font-size="13">64×56² → 128×28² → 256×14² → 512×7²</text>
+    <text x="695" y="97" font-size="15" font-weight="bold">Avg pool</text><text x="695" y="124" font-size="13">512 features</text>
+    <text x="850" y="97" font-size="15" font-weight="bold">Linear: 512 → 2</text><text x="850" y="124" font-size="13">cat / dog logits</text>
+  </g>
+  <text x="30" y="182" fill="#334155" font-family="Arial,sans-serif" font-size="14">ImageNet backbone: frozen for epoch 1, then fine-tuned. The new linear head is trained from the start.</text>
+</svg>
